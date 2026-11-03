@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  firstName    String   @map("first_name") @db.VarChar(100)
+  lastName     String   @map("last_name") @db.VarChar(100)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(255)
+  avatarUrl    String?  @map("avatar_url") @db.Text
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  recipes   Recipe[]
+  comments  Comment[]
+  ratings   Rating[]
+  favorites Favorite[]
+
+  @@map("user")
+}
+
+model Recipe {
+  id            String  @id @default(uuid()) @db.Uuid
+  authorId      String  @map("author_id") @db.Uuid
+  title         String  @db.VarChar(200)
+  description   String  @db.Text
+  coverImageUrl String? @map("cover_image_url") @db.Text
+  content       String  @db.Text
+
+  avgRating      Decimal  @default(0) @map("avg_rating") @db.Decimal(3, 2)
+  ratingCount    Int      @default(0) @map("rating_count")
+  favoritesCount Int      @default(0) @map("favorites_count")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author    User       @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+  ratings   Rating[]
+  favorites Favorite[]
+
+  @@index([authorId], map: "idx_recipe_author_id")
+  @@index([createdAt(sort: Desc)], map: "idx_recipe_created_at")
+  @@index([avgRating(sort: Desc)], map: "idx_recipe_avg_rating")
+  @@map("recipe")
+}
+
+model Comment {
+  id              String    @id @default(uuid()) @db.Uuid
+  authorId        String    @map("author_id") @db.Uuid
+  recipeId        String    @map("recipe_id") @db.Uuid
+  parentCommentId String?   @map("parent_comment_id") @db.Uuid
+  content         String    @db.Text
+  deletedAt       DateTime? @map("deleted_at") @db.Timestamptz(6)
+  createdAt       DateTime? @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime? @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  author        User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  recipe        Recipe    @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  parentComment Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies       Comment[] @relation("CommentReplies")
+
+  @@index([recipeId], map: "idx_comment_recipe_id")
+  @@index([authorId], map: "idx_comment_author_id")
+  @@index([parentCommentId], map: "idx_comment_parent_comment_id")
+  @@map("comment")
+}
+
+model Rating {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  recipeId  String   @map("recipe_id") @db.Uuid
+  value     Int      @db.SmallInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId], map: "uq_rating_user_id_recipe_id")
+  @@index([recipeId], map: "idx_rating_recipe_id")
+  @@map("rating")
+}
+
+model Favorite {
+  userId    String   @map("user_id") @db.Uuid
+  recipeId  String   @map("recipe_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@id([userId, recipeId])
+  @@index([recipeId], map: "idx_favorite_recipe_id")
+  @@map("favorite")
+}
