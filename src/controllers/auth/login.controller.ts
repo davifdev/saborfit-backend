@@ -1,14 +1,25 @@
 import type { Request } from "express";
 import type { LoginService } from "../../services/auth/login.service.js";
 import type { LoginParams } from "../../types/auth/login.js";
-import { OK } from "../helpers/http.js";
+import { INTERNAL_SERVER_ERROR, OK } from "../helpers/http.js";
+import { loginSchema } from "../../schemas/auth/login.schema.js";
 export class LoginController {
-  constructor(private readonly loginService: LoginService) {}
+  constructor(private readonly loginService: LoginService) {
+    this.loginService = loginService;
+  }
 
   async execute(httpRequest: Request) {
-    const params: LoginParams = httpRequest.body;
-    const result = await this.loginService.execute(params);
+    try {
+      const params: LoginParams = httpRequest.body;
 
-    return OK(result);
+      await loginSchema.parseAsync(params);
+
+      const result = await this.loginService.execute(params);
+
+      return OK(result);
+    } catch (error) {
+      console.error(error);
+      return INTERNAL_SERVER_ERROR();
+    }
   }
 }

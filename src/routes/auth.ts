@@ -9,3 +9,10 @@ authRouter.post("/login", async (req, res) => {
 
   res.status(statusCode).json(body);
 });
+
+authRouter.post("/register", async (req, res) => {
+  const registerController = makeLoginController();
+  const { statusCode, body } = await registerController.execute(req);
+
+  res.status(statusCode).json(body);
+});
