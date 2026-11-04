@@ -14,7 +14,6 @@ authRouter.post("/login", async (req, res) => {
 });
 
 authRouter.post("/register", async (req, res) => {
-  console.log("My obj req: ", req.body);
   const registerController = makeRegisterController();
   const { statusCode, body } = await registerController.execute(req);
 
